@@ -1,0 +1,355 @@
+---
+title: "한우, 육우 생산단가와 수익성 비교"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(plotly)
+library(DT)
+library(readxl)
+library(ggthemes)
+df <- readxl::read_excel("두당수익성.xlsx")
+df1 <- readxl::read_excel("사육비.xlsx")
+df2 <- readxl::read_excel("1-1.xlsx")
+df3 <- readxl::read_excel("number.xlsx")
+df4 <- readxl::read_excel("1-2.xlsx")
+```
+
+
+
+
+
+## 품종별 등급과 경락가격
+
+```{r}
+df2 %>%
+  mutate(등급 = factor(등급, level = c("3", "2", "1", "1+", "1++"))) %>%
+  ggplot(aes(x = 등급, y = 경락가격, fill = 품종별)) +
+  geom_col(width = 0.5) +
+   scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+  theme_fivethirtyeight() +
+  labs(title = "한,육우 등급별 경락가격",
+       caption = "통계청")
+```
+
+- 경락가격의 경우 한우가 육우대비 1++등급에서 7414원, 1+에서 6923원, 1에서 6565원, 2에서 4428원, 3에서 2686원의 금액을 높게 받는것으로 나타남.
+
+- 상기 자료를 근거하여 한우가 육우대비 높은 경락가격을 받는다는 결론을 도출.
+
+
+
+## 품종별 등급비율
+
+```{r}
+df2%>%
+  mutate(등급 = factor(등급, level = c("3", "2", "1", "1+", "1++"))) %>%
+  ggplot(aes(x = 등급, y = 등급비율, fill = 품종별)) +
+  geom_col(width = 0.5) +
+   scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+  theme_fivethirtyeight() +
+  labs(title = "품종별 등급과 등급비율",
+       caption = "통계청")
+```
+
+- 등급비율의 경우 한우가 육우대비 1++등급에서 13%, 1+에서 25%, 1에서 22%, 2에서 -22%, 3에서 -39%의 비율로 높은등급을 받는것으로 나타남.
+
+- 상기 자료를 근거하여 한우가 육우대비 높은 등급을 받는 비율이 높다는 결론을 도출.
+
+
+
+
+## 도매시장 별 등급비율
+```{r}
+df4 %>%
+  filter(품종 == "한우") %>%
+  mutate(한우등급 = factor(등급, level = c("3", "2", "1", "1+", "1++"))) %>%
+  ggplot(aes(x = 등급, y = 등급비율, fill =도매시장)) +
+  geom_col(width = 0.5) +
+  coord_flip() +
+  scale_fill_brewer(palette = "Spectral") +
+  theme_fivethirtyeight() +
+  labs(title = "한우도매시장별 등급과 등급비율",
+       caption = "통계청")
+
+```
+
+
+
+
+
+
+```{r}
+df4 %>%
+  filter(품종 == "육우") %>%
+  mutate(육우등급 = factor(등급, level = c("3", "2", "1", "1+", "1++"))) %>%
+  ggplot(aes(x = 등급, y = 등급비율, fill = 도매시장)) +
+  geom_col(width = 0.5)+
+  coord_flip() +
+  scale_fill_brewer(palette = "Spectral") +
+  theme_fivethirtyeight() +
+  labs(title = "육우도매시장별 등급과 등급비율",
+       caption = "통계청")
+```
+
+
+```{r}
+
+z <- df4 %>%
+  select(품종:두수) %>%
+  spread(key = "도매시장", value = "두수")
+
+
+  DT::datatable(z,
+    options = list(
+      scrollX = TRUE
+    )
+  )
+
+```
+
+
+
+### interval conclusion1
+
+한우는 육우대비 높은 등급을 받는 비율이 높으며, 경락 단가 역시 높게받는 경향이 있다. 또한 육우대비 균형적 도매 시장을 형성하고 있으며 상기 자료들로만은 한우가 육우대비 생산 효율성이 높다는 중결론을 도출, 이하 생산 단가 사육비 등의 자료를 취합하여 대결론을 도출 하려 한다.
+
+
+
+# 사육비
+
+```{r cars}
+d <- df1 %>%
+  filter(비목별 != "평균") %>%
+  mutate(비목별 = factor(비목별, level = c("20두미만", "20~49두", "50~99두", "100두이상"))) %>%
+  ggplot(aes(비목별, 비용합계, fill = 품종)) +
+  geom_col(position = "dodge")+
+ scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+ theme_fivethirtyeight() +
+ labs(title = "한우·육우 사육비",
+   subtitle = "한우의 사육비가 육우보다 높다.",
+caption = "통계청,「농축산물생산비조사」")
+
+ggplotly(d)
+
+```
+
+
+- 한우와 육우 모두 사육 두수가 늘어날수록 생산 단가가 줄어든다.
+- 한우는 육우 대비 약29%의 사육비가 더 소요된다.
+- 상기 내용을 토대로 육우 대비 한우의 생산 단가가 많이 소요 된다는 결론을 도출.
+
+
+
+
+## 생산비
+
+```{r}
+dff <- df1 %>%
+  gather(비용합계:토지용역비, key = "항목", value = "비용")
+
+e<- dff %>%
+  filter(비목별 == "평균") %>%
+  ggplot(aes(reorder(항목, 비용, sum), 비용, fill = 품종)) +
+  geom_col(position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+  labs(x = "목록",caption = "통계청")
+
+ggplotly(e)
+```
+
+- 한우는 사료비가 가장 많은 비율을 차지한다.
+- 육우는 가축비가 가장 많은 비율을 차지한다.
+- 사료비(약 10%)에서 가장 차이가 적으며 가축비(약 46%)에서 가장 큰 차이가 나므로 생산 단가에 가장 많은 영향을 끼치는 것은 가축비라는 결론을 도출.
+
+
+
+
+
+```{r}
+g <- df1 %>%
+  filter(비목별 != "평균", 품종 == "한우")%>%
+  select(-품종)
+
+
+  DT::datatable(g,
+    options = list(
+      scrollX = TRUE
+    )
+  )
+```
+
+
+```{r}
+f <- df1 %>%
+  filter(비목별 != "평균", 품종 == "육우")%>%
+  select(-품종)
+
+
+  DT::datatable(f,
+    options = list(
+      scrollX = TRUE
+    )
+  )
+```
+
+
+
+## 두당 수익성
+
+```{r}
+a <- df %>%
+  filter(비목별 != "평균") %>%
+  mutate(비목별 = factor(비목별, level = c("20두미만", "20~49두", "50~99두", "100두이상"))) %>%
+  ggplot(aes(x = 비목별, y = 순수익, fill = 품종)) +
+  geom_col(position = "dodge") +
+  theme_fivethirtyeight() +
+  scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+  labs(
+    title = "한우, 육우 두당 수익성",
+    subtitle = "한우의 수익성이 육우보다 높다",
+    caption = "통계청, 두당 한우 육우 수익성"
+  )
+  
+  
+ggplotly(a)
+```
+
+- 사육 두수가 늘어날수록 생산원가 저하로 인한 수익성이 증대 함을 확인 함.
+- 99두 이하 사육시 적자 현상이 확인 됨.
+- 상기 현상은 육우 에서 더 크게 발생 하였다.
+- 상기 자료를 기반하여 100두 이상 사육함이 손익 분기점이라는 결론을 도출.
+
+
+
+### interval conclusion2
+
+1차 중결론에서 한우는 육우 대비 도축시 높은 경제적 이윤을 가져온다는 결론을 도출 하였으나 육우 대비 약 29%의 생산 단가가 높다는 결론을 도출 함,
+이하, 사육 호수 및 비목별 사육두수를 통한 시장형태를 조사, 분석하려 함.
+
+
+### 한우
+
+```{r}
+c <- df %>%
+  filter(품종 == "한우") %>%
+  select(-품종)
+
+DT::datatable(c)
+```
+
+### 육우
+
+```{r}
+b <- df %>%
+  filter(품종 == "육우") %>%
+  select(-품종)
+
+DT::datatable(b)
+```
+
+
+
+
+# 총 사육두수 구성비
+
+## 한우
+
+```{r}
+df3 %>%
+  filter(품종 == "한우", 비목별 != "평균") %>%
+  select(품종, 비목별, 총사육두수구성비) %>%
+  ggplot(aes(x = "", y = 총사육두수구성비, fill= 비목별)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  scale_fill_manual(values = c("#2E279D",  "#4D80E4", "#46B3E6","#BAE8E8" )) +
+  theme_fivethirtyeight()+
+  labs(
+    title = "한우 비율",
+    caption = "통계청"
+  )
+```
+
+
+
+```{r}
+h <- df3  %>%
+  filter(품종 == "한우", 비목별 != "평균") %>%
+  select(품종, 비목별, 총사육두수구성비)
+DT::datatable(h)
+```
+
+
+### 육우
+
+```{r}
+df3  %>%
+  filter(품종 == "육우", 비목별 != "평균") %>%
+  select(품종, 비목별, 총사육두수구성비) %>%
+  ggplot(aes(x = "", y = 총사육두수구성비, fill= 비목별)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  scale_fill_manual(values = c("#9D0B0B", "#C72C41", "#EF4B4B", "#FFAAAA")) +
+  theme_fivethirtyeight()+
+  labs(
+    title = "육우 비율",
+    caption = "통계청"
+  )
+```
+
+```{r}
+i <- df3  %>%
+  filter(품종 == "육우", 비목별 != "평균") %>%
+  select(품종, 비목별, 총사육두수구성비)
+DT::datatable(i)
+```
+
+
+
+
+
+## 비목별 사육호수
+
+```{r}
+df3 %>%
+  filter(비목별 != "평균") %>%
+  ggplot() +
+  geom_col(aes(x = 비목별, y=호수, fill = 품종), width=0.5, position = "dodge") +
+  scale_fill_manual(values = c("#C72C41", "#3E64FF")) +
+  theme_fivethirtyeight() +
+  labs(title = "비목별 사육호수",
+    caption = "통계청")
+```
+
+
+- 한우는 20두 미만 사육농가가 가장 많으며 육우는 20-49두 사육 농가가 가장 많은것으로 확인 됨.
+- 20두 미만 사육농가 수에서 한우와 육우의 농가수가 가장 많은 차이를 보임.
+- 이러한 차이의 가장큰 원인은 두당 사육원가라는 결론을 도출.
+
+
+
+
+
+## final conclusion
+
+1. 한우는 육우대비 생산시 많은 비용(약 29%)이 소요 됨.
+2. 이로 인해 한우는 육우 대비 경락단가가 높게(약 35%) 책정 된다는 결론을 도출 함.
+3. 한우와 육우 모두 많은 두수를 사육(100두 이상)할수록 생산 단가 저하로 인한 수익성이 증대 된다.
+4. 이러한 차이는 한우 대비 육우에서 크게 나타나며, 가축비용의 차이보다 수익성에서 한우가 높은이유라는 결론을 도출 함.
+5. 한우는 육우대비 더 적은 두수를 사육하는 농가가 많은 것으로 나타남.
+6. 이러한 차이는 한우의 가축비가 육우 대비 높음으로 초기 투자비용에 의한 차이라는 결론을 도출 함.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
